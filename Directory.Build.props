@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Project>
+	<!-- Portable Build Properties: Automatically fall back to environment configurations if default path is not found -->
 	<PropertyGroup>
-		<GamePath>C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag</GamePath>
+		<GamePath Condition="Exists('C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag')">C:\Program Files (x86)\Steam\steamapps\common\Gorilla Tag</GamePath>
+		<GamePath Condition="'$(GamePath)' == ''">$(GORILLATAG_PATH)</GamePath>
 		<GameAssemblyPath>$(GamePath)\Gorilla Tag_Data\Managed</GameAssemblyPath>
 		<BepInExAssemblyPath>$(GamePath)\BepInEx\core</BepInExAssemblyPath>
 		<PluginsPath>$(GamePath)\BepInEx\plugins</PluginsPath>
