@@ -1,4 +1,3 @@
-﻿using Console;
 using HarmonyLib;
 using System;
 using System.Linq;
@@ -33,11 +32,8 @@ namespace StupidTemplate.Patches
                 }
 
                 Debug.Log($"Patched with {PatchErrors} errors");
-
                 IsPatched = true;
             }
-
-            Console.Console.LoadConsoleImmediately();
         }
 
         public static void UnpatchAll()
