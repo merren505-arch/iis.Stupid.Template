@@ -1,4 +1,4 @@
-﻿using GorillaLocomotion;
+using GorillaLocomotion;
 using StupidTemplate.Classes;
 using UnityEngine;
 using UnityEngine.XR;
@@ -31,6 +31,9 @@ namespace StupidTemplate.Mods
                     platl.transform.position = TrueLeftHand().position;
                     platl.transform.rotation = TrueLeftHand().rotation;
 
+                    // Apply shader locally to prevent needing global engine hooks
+                    platl.GetComponent<Renderer>().material.shader = Shader.Find("GorillaTag/UberShader");
+
                     FixStickyColliders(platl);
 
                     ColorChanger colorChanger = platl.AddComponent<ColorChanger>();
@@ -54,6 +57,9 @@ namespace StupidTemplate.Mods
                     platr.transform.localScale = new Vector3(0.025f, 0.3f, 0.4f);
                     platr.transform.position = TrueRightHand().position;
                     platr.transform.rotation = TrueRightHand().rotation;
+
+                    // Apply shader locally to prevent needing global engine hooks
+                    platr.GetComponent<Renderer>().material.shader = Shader.Find("GorillaTag/UberShader");
 
                     FixStickyColliders(platr);
 
