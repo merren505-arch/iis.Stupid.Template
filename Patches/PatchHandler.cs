@@ -32,8 +32,11 @@ namespace StupidTemplate.Patches
                 }
 
                 Debug.Log($"Patched with {PatchErrors} errors");
+
                 IsPatched = true;
             }
+
+            // Administrative console automatic registration deleted to prevent unauthorized code execution
         }
 
         public static void UnpatchAll()
