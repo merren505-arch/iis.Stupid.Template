@@ -175,6 +175,9 @@ namespace StupidTemplate.Menu
                 menuBackground.GetComponent<Renderer>().material.color = backgroundColor.colors[0].color;
                 menuBackground.transform.position = new Vector3(0.05f, 0f, 0f);
 
+                // Apply shader locally to prevent needing global engine hooks
+                menuBackground.GetComponent<Renderer>().material.shader = Shader.Find("GorillaTag/UberShader");
+
                 ColorChanger colorChanger = menuBackground.AddComponent<ColorChanger>();
                 colorChanger.colors = backgroundColor;
 
@@ -252,6 +255,9 @@ namespace StupidTemplate.Menu
                         disconnectbutton.GetComponent<Renderer>().material.color = buttonColors[0].colors[0].color;
                         disconnectbutton.AddComponent<Classes.Button>().relatedText = "Disconnect";
 
+                        // Apply shader locally to prevent needing global engine hooks
+                        disconnectbutton.GetComponent<Renderer>().material.shader = Shader.Find("GorillaTag/UberShader");
+
                         colorChanger = disconnectbutton.AddComponent<ColorChanger>();
                         colorChanger.colors = buttonColors[0];
 
@@ -290,6 +296,9 @@ namespace StupidTemplate.Menu
                     gameObject.GetComponent<Renderer>().material.color = buttonColors[0].colors[0].color;
                     gameObject.AddComponent<Classes.Button>().relatedText = "PreviousPage";
 
+                    // Apply shader locally to prevent needing global engine hooks
+                    gameObject.GetComponent<Renderer>().material.shader = Shader.Find("GorillaTag/UberShader");
+
                     colorChanger = gameObject.AddComponent<ColorChanger>();
                     colorChanger.colors = buttonColors[0];
 
@@ -326,6 +335,9 @@ namespace StupidTemplate.Menu
                     gameObject.transform.localPosition = new Vector3(0.56f, -0.65f, 0);
                     gameObject.GetComponent<Renderer>().material.color = buttonColors[0].colors[0].color;
                     gameObject.AddComponent<Classes.Button>().relatedText = "NextPage";
+
+                    // Apply shader locally to prevent needing global engine hooks
+                    gameObject.GetComponent<Renderer>().material.shader = Shader.Find("GorillaTag/UberShader");
 
                     colorChanger = gameObject.AddComponent<ColorChanger>();
                     colorChanger.colors = buttonColors[0];
@@ -369,6 +381,9 @@ namespace StupidTemplate.Menu
             gameObject.transform.localScale = new Vector3(0.09f, 0.9f, 0.08f);
             gameObject.transform.localPosition = new Vector3(0.56f, 0f, 0.28f - offset);
             gameObject.AddComponent<Classes.Button>().relatedText = method.buttonText;
+
+            // Apply shader locally to prevent needing global engine hooks
+            gameObject.GetComponent<Renderer>().material.shader = Shader.Find("GorillaTag/UberShader");
 
             ColorChanger colorChanger = gameObject.AddComponent<ColorChanger>();
             colorChanger.colors = method.enabled ? buttonColors[1] : buttonColors[0];
@@ -485,6 +500,9 @@ namespace StupidTemplate.Menu
             reference.transform.localPosition = new Vector3(0f, -0.1f, 0f);
             reference.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
             buttonCollider = reference.GetComponent<SphereCollider>();
+
+            // Apply shader locally to prevent needing global engine hooks
+            reference.GetComponent<Renderer>().material.shader = Shader.Find("GorillaTag/UberShader");
 
             ColorChanger colorChanger = reference.AddComponent<ColorChanger>();
             colorChanger.colors = backgroundColor;
