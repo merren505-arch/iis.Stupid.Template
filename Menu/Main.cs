@@ -33,6 +33,12 @@ namespace StupidTemplate.Menu
     [HarmonyPatch(typeof(GTPlayer), "LateUpdate")]
     public class Main : MonoBehaviour
     {
+        // Cache structures to prevent high-frequency GC pressure in VR loop updates
+        private static readonly List<ButtonInfo> EnabledButtonsCache = new List<ButtonInfo>(32);
+        private static bool _cacheInitialized = false;
+        private static float _nextFpsUpdateTime = 0f;
+        private static int _cachedFpsVal = 0;
+
         // Constant
         public static void Prefix()
         {
@@ -58,7 +64,12 @@ namespace StupidTemplate.Menu
                             RecenterMenu(rightHanded, keyboardOpen);
                         else
                         {
-                            GameObject.Find("Shoulder Camera").transform.Find("CM vcam1").gameObject.SetActive(true);
+                            GameObject shoulderCam = GameObject.Find("Shoulder Camera");
+                            if (shoulderCam != null)
+                            {
+                                Transform vcamTrans = shoulderCam.transform.Find("CM vcam1");
+                                if (vcamTrans != null) vcamTrans.gameObject.SetActive(true);
+                            }
 
                             Rigidbody comp = menu.AddComponent(typeof(Rigidbody)) as Rigidbody;
                             comp.linearVelocity = (rightHanded ? GTPlayer.Instance.LeftHand.velocityTracker : GTPlayer.Instance.RightHand.velocityTracker).GetAverageVelocity(true, 0);
@@ -104,20 +115,38 @@ namespace StupidTemplate.Menu
                 {
                     // Pre-Execution
                         if (fpsObject != null)
-                            fpsObject.text = "FPS: " + Mathf.Ceil(1f / Time.unscaledDeltaTime).ToString();
+                        {
+                            float currentTime = Time.time;
+                            if (currentTime >= _nextFpsUpdateTime)
+                            {
+                                _cachedFpsVal = Mathf.CeilToInt(1f / Time.unscaledDeltaTime);
+                                fpsObject.text = $"FPS: {_cachedFpsVal}";
+                                _nextFpsUpdateTime = currentTime + 0.5f; // Allocation rate throttled
+                            }
+                        }
+
+                    // Rebuild cache lazily if state tracking is lost
+                        if (!_cacheInitialized)
+                        {
+                            RebuildEnabledButtonsCache();
+                        }
 
                     // Execute Enabled Mods
-                        foreach (ButtonInfo button in buttons
-                            .SelectMany(list => list)
-                            .Where(button => button.enabled && button.method != null))
+                    // Optimization: Standard index loops used over cached lists to achieve zero-alloc update cycles
+                        int size = EnabledButtonsCache.Count;
+                        for (int i = 0; i < size; i++)
                         {
-                            try
+                            ButtonInfo button = EnabledButtonsCache[i];
+                            if (button.method != null)
                             {
-                                button.method.Invoke();
-                            }
-                            catch (Exception exc)
-                            {
-                                Debug.LogError(string.Format("{0} // Error with mod {1} at {2}: {3}", PluginInfo.Name, button.buttonText, exc.StackTrace, exc.Message));
+                                try
+                                {
+                                    button.method.Invoke();
+                                }
+                                catch (Exception exc)
+                                {
+                                    Debug.LogError(string.Format("{0} // Error with mod {1} at {2}: {3}", PluginInfo.Name, button.buttonText, exc.StackTrace, exc.Message));
+                                }
                             }
                         }
                 } catch (Exception exc)
@@ -191,7 +220,7 @@ namespace StupidTemplate.Menu
                         }
                     }.AddComponent<Text>();
                     fpsObject.font = currentFont;
-                    fpsObject.text = "FPS: " + Mathf.Ceil(1f / Time.unscaledDeltaTime).ToString();
+                    fpsObject.text = "FPS: " + _cachedFpsVal.ToString();
                     fpsObject.color = textColors[0];
                     fpsObject.fontSize = 1;
                     fpsObject.supportRichText = true;
@@ -408,7 +437,12 @@ namespace StupidTemplate.Menu
                 }
                 catch { }
 
-                GameObject.Find("Shoulder Camera").transform.Find("CM vcam1").gameObject.SetActive(false);
+                GameObject shoulderCam = GameObject.Find("Shoulder Camera");
+                if (shoulderCam != null)
+                {
+                    Transform vcamTrans = shoulderCam.transform.Find("CM vcam1");
+                    if (vcamTrans != null) vcamTrans.gameObject.SetActive(false);
+                }
 
                 if (TPC != null)
                 {
@@ -498,12 +532,33 @@ namespace StupidTemplate.Menu
                             if (target.method != null)
                                 try { target.method.Invoke(); } catch { }
                         }
+
+                        // Rebuild cache when button enabled states change
+                        RebuildEnabledButtonsCache();
                     }
                     else
                         Debug.LogError(buttonText + " does not exist");
                 }
             }
             RecreateMenu();
+        }
+
+        public static void RebuildEnabledButtonsCache()
+        {
+            EnabledButtonsCache.Clear();
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                ButtonInfo[] categoryList = buttons[i];
+                for (int j = 0; j < categoryList.Length; j++)
+                {
+                    ButtonInfo button = categoryList[j];
+                    if (button.enabled && button.method != null)
+                    {
+                        EnabledButtonsCache.Add(button);
+                    }
+                }
+            }
+            _cacheInitialized = true;
         }
 
         private static readonly Dictionary<string, (int Category, int Index)> cacheGetIndex = new Dictionary<string, (int Category, int Index)>(); // Looping through 800 elements is not a light task :/
