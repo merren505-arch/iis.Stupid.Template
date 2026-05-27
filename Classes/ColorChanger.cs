@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace StupidTemplate.Classes
 {
@@ -13,28 +13,40 @@ namespace StupidTemplate.Classes
             }
 
             targetRenderer = GetComponent<Renderer>();
+            _propBlock = new MaterialPropertyBlock();
 
             if (colors.IsFlat())
             {
-                Update();
+                UpdateColor();
                 Destroy(this);
                 return;
             }
 
-            Update();
+            UpdateColor();
         }
 
         public void Update()
+        {
+            UpdateColor();
+        }
+
+        private void UpdateColor()
         {
             targetRenderer.enabled = !colors.transparent;
 
             if (colors.transparent)
                 return;
 
-            targetRenderer.material.color = colors.GetCurrentColor();
+            // Optimization: Use MaterialPropertyBlock to prevent material instancing leaks on update
+            targetRenderer.GetPropertyBlock(_propBlock);
+            _propBlock.SetColor(ColorShaderId, colors.GetCurrentColor());
+            targetRenderer.SetPropertyBlock(_propBlock);
         }
 
         public Renderer targetRenderer;
         public ExtGradient colors;
+        
+        private MaterialPropertyBlock _propBlock;
+        private static readonly int ColorShaderId = Shader.PropertyToID("_Color");
     }
 }
