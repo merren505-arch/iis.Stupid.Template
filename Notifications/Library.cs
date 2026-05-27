@@ -10,85 +10,66 @@ namespace StupidTemplate.Notifications
     [BepInPlugin("org.gorillatag.lars.notifications2", "NotificationLibrary", "1.0.5")]
     public class NotifiLib : BaseUnityPlugin
     {
-        private const int MaxStoredNotifications = 5;
-        private static readonly string[] NotificationQueue = new string[MaxStoredNotifications];
-        private static readonly float[] ExpiryTimes = new float[MaxStoredNotifications];
-        private static int ActiveCount = 0;
-        private static bool QueueDirty = false;
-
-        private GameObject _hudObj;
-        private GameObject _hudObj2;
-        private GameObject _mainCamera;
-        private Text _testtext;
-        private readonly Material _alertText = new Material(Shader.Find("GUI/Text Shader"));
-        private readonly StringBuilder _stringBuilder = new StringBuilder(512);
-
-        private bool _hasInit;
-
         private void Awake()
         {
-            Logger.LogInfo("Zero-Allocation NotificationLibrary initialized.");
+            Logger.LogInfo("Plugin NotificationLibrary is loaded!");
         }
 
         private void Init()
         {
-            _mainCamera = GameObject.Find("Main Camera");
-            if (_mainCamera == null) return;
-
-            _hudObj = new GameObject("NOTIFICATIONLIB_HUD_OBJ");
-            _hudObj2 = new GameObject("NOTIFICATIONLIB_HUD_OBJ2");
-
-            _hudObj.AddComponent<Canvas>();
-            _hudObj.AddComponent<CanvasScaler>();
-            _hudObj.AddComponent<GraphicRaycaster>();
-
-            Canvas canvas = _hudObj.GetComponent<Canvas>();
-            canvas.enabled = true;
-            canvas.renderMode = RenderMode.WorldSpace;
-            canvas.worldCamera = _mainCamera.GetComponent<Camera>();
-
-            RectTransform rect = _hudObj.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(5f, 5f);
-            rect.position = _mainCamera.transform.position;
-
-            _hudObj2.transform.position = _mainCamera.transform.position - new Vector3(0, 0, 4.6f);
-            _hudObj.transform.parent = _hudObj2.transform;
-            rect.localPosition = new Vector3(0f, 0f, 1.6f);
-
-            Vector3 eulerAngles = rect.rotation.eulerAngles;
+            this.MainCamera = GameObject.Find("Main Camera");
+            this.HUDObj = new GameObject();
+            this.HUDObj2 = new GameObject();
+            this.HUDObj2.name = "NOTIFICATIONLIB_HUD_OBJ";
+            this.HUDObj.name = "NOTIFICATIONLIB_HUD_OBJ";
+            this.HUDObj.AddComponent<Canvas>();
+            this.HUDObj.AddComponent<CanvasScaler>();
+            this.HUDObj.AddComponent<GraphicRaycaster>();
+            this.HUDObj.GetComponent<Canvas>().enabled = true;
+            this.HUDObj.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+            this.HUDObj.GetComponent<Canvas>().worldCamera = this.MainCamera.GetComponent<Camera>();
+            this.HUDObj.GetComponent<RectTransform>().sizeDelta = new Vector2(5f, 5f);
+            this.HUDObj.GetComponent<RectTransform>().position = new Vector3(this.MainCamera.transform.position.x, this.MainCamera.transform.position.y, this.MainCamera.transform.position.z);
+            this.HUDObj2.transform.position = new Vector3(this.MainCamera.transform.position.x, this.MainCamera.transform.position.y, this.MainCamera.transform.position.z - 4.6f);
+            this.HUDObj.transform.parent = this.HUDObj2.transform;
+            this.HUDObj.GetComponent<RectTransform>().localPosition = new Vector3(0f, 0f, 1.6f);
+            Vector3 eulerAngles = this.HUDObj.GetComponent<RectTransform>().rotation.eulerAngles;
             eulerAngles.y = -270f;
-            _hudObj.transform.localScale = Vector3.one;
-            rect.rotation = Quaternion.Euler(eulerAngles);
-
-            GameObject textGo = new GameObject("NotificationText");
-            textGo.transform.SetParent(_hudObj.transform, false);
-
-            _testtext = textGo.AddComponent<Text>();
-            _testtext.text = string.Empty;
-            _testtext.fontSize = 30;
-            _testtext.font = currentFont;
-            _testtext.rectTransform.sizeDelta = new Vector2(450f, 210f);
-            _testtext.alignment = TextAnchor.LowerLeft;
-            _testtext.rectTransform.localScale = new Vector3(0.00333333333f, 0.00333333333f, 0.33333333f);
-            _testtext.rectTransform.localPosition = new Vector3(-1f, -1f, -0.5f);
-            _testtext.material = _alertText;
-
-            _hasInit = true;
+            this.HUDObj.transform.localScale = new Vector3(1f, 1f, 1f);
+            this.HUDObj.GetComponent<RectTransform>().rotation = Quaternion.Euler(eulerAngles);
+            this.Testtext = new GameObject
+            {
+                transform =
+                {
+                    parent = this.HUDObj.transform
+                }
+            }.AddComponent<Text>();
+            this.Testtext.text = "";
+            this.Testtext.fontSize = 30;
+            this.Testtext.font = currentFont;
+            this.Testtext.rectTransform.sizeDelta = new Vector2(450f, 210f);
+            this.Testtext.alignment = TextAnchor.LowerLeft;
+            this.Testtext.rectTransform.localScale = new Vector3(0.00333333333f, 0.00333333333f, 0.33333333f);
+            this.Testtext.rectTransform.localPosition = new Vector3(-1f, -1f, -0.5f);
+            this.Testtext.material = this.AlertText;
+            NotifiText = this.Testtext;
         }
 
         private void FixedUpdate()
         {
-            if (!_hasInit)
+            bool flag = !this.HasInit && GameObject.Find("Main Camera") != null;
+            if (flag)
             {
-                Init();
-                return;
+                this.Init();
+                this.HasInit = true;
             }
 
-            if (_mainCamera == null) return;
+            if (!this.HasInit) return;
 
-            Transform camTrans = _mainCamera.transform;
-            _hudObj2.transform.SetPositionAndRotation(camTrans.position, camTrans.rotation);
-
+            this.HUDObj2.transform.position = new Vector3(this.MainCamera.transform.position.x, this.MainCamera.transform.position.y, this.MainCamera.transform.position.z);
+            this.HUDObj2.transform.rotation = this.MainCamera.transform.rotation;
+            
+            // Optimization: Avoid dynamic string splits and allocations on high-frequency update loops
             float currentTime = Time.time;
             bool changed = false;
 
@@ -96,6 +77,7 @@ namespace StupidTemplate.Notifications
             {
                 if (currentTime >= ExpiryTimes[i])
                 {
+                    // Shift values inside arrays on notification expiry
                     for (int j = i; j < ActiveCount - 1; j++)
                     {
                         NotificationQueue[j] = NotificationQueue[j + 1];
@@ -111,46 +93,69 @@ namespace StupidTemplate.Notifications
 
             if (changed || QueueDirty)
             {
-                UpdateDisplayText();
+                RebuildDisplayText();
                 QueueDirty = false;
             }
         }
 
-        private void UpdateDisplayText()
+        private void RebuildDisplayText()
         {
-            if (_testtext == null) return;
+            if (NotifiText == null) return;
 
-            _stringBuilder.Clear();
+            StringBuilderCache.Clear();
             for (int i = 0; i < ActiveCount; i++)
             {
-                _stringBuilder.Append(NotificationQueue[i]);
-                _stringBuilder.Append(Environment.NewLine);
+                StringBuilderCache.Append(NotificationQueue[i]);
+                StringBuilderCache.Append(Environment.NewLine);
             }
-            _testtext.text = _stringBuilder.ToString();
+            NotifiText.text = StringBuilderCache.ToString();
         }
 
-        public static void SendNotification(string notificationText)
+        public static void SendNotification(string NotificationText)
         {
-            if (disableNotifications || string.IsNullOrEmpty(notificationText)) return;
-
-            if (ActiveCount >= MaxStoredNotifications)
+            if (!disableNotifications && !string.IsNullOrEmpty(NotificationText))
             {
-                for (int i = 0; i < MaxStoredNotifications - 1; i++)
+                try
                 {
-                    NotificationQueue[i] = NotificationQueue[i + 1];
-                    ExpiryTimes[i] = ExpiryTimes[i + 1];
-                }
-                ActiveCount--;
-            }
+                    if (IsEnabled && PreviousNotifi != NotificationText)
+                    {
+                        // Clean trailing space requirements dynamically without causing GC thrashing
+                        string formattedText = NotificationText;
+                        if (!formattedText.EndsWith(Environment.NewLine))
+                        {
+                            formattedText += Environment.NewLine;
+                        }
 
-            NotificationQueue[ActiveCount] = notificationText;
-            ExpiryTimes[ActiveCount] = Time.time + 4.5f; 
-            ActiveCount++;
-            QueueDirty = true;
+                        if (ActiveCount >= MaxStoredNotifications)
+                        {
+                            // Pop oldest notification from array
+                            for (int i = 0; i < MaxStoredNotifications - 1; i++)
+                            {
+                                NotificationQueue[i] = NotificationQueue[i + 1];
+                                ExpiryTimes[i] = ExpiryTimes[i + 1];
+                            }
+                            ActiveCount--;
+                        }
+
+                        NotificationQueue[ActiveCount] = formattedText;
+                        ExpiryTimes[ActiveCount] = Time.time + 4.5f; // Hard limit lifespan duration
+                        ActiveCount++;
+
+                        PreviousNotifi = NotificationText;
+                        QueueDirty = true;
+                    }
+                }
+                catch
+                {
+                    Debug.LogError("Notification failed, object probably nil due to third person ; " + NotificationText);
+                }
+            }
         }
 
         public static void ClearAllNotifications()
         {
+            //NotifiLib.NotifiText.text = "<color=grey>[</color><color=green>SUCCESS</color><color=grey>]</color> <color=white>Notifications cleared.</color>" + Environment.NewLine;
+            
             for (int i = 0; i < MaxStoredNotifications; i++)
             {
                 NotificationQueue[i] = null;
@@ -159,5 +164,62 @@ namespace StupidTemplate.Notifications
             ActiveCount = 0;
             QueueDirty = true;
         }
+
+        public static void ClearPastNotifications(int amount)
+        {
+            int clearAmount = Mathf.Min(amount, ActiveCount);
+            if (clearAmount <= 0) return;
+
+            for (int i = 0; i < ActiveCount - clearAmount; i++)
+            {
+                NotificationQueue[i] = NotificationQueue[i + clearAmount];
+                ExpiryTimes[i] = ExpiryTimes[i + clearAmount];
+            }
+
+            for (int i = ActiveCount - clearAmount; i < MaxStoredNotifications; i++)
+            {
+                NotificationQueue[i] = null;
+                ExpiryTimes[i] = 0f;
+            }
+
+            ActiveCount -= clearAmount;
+            QueueDirty = true;
+        }
+
+        private GameObject HUDObj;
+
+        private GameObject HUDObj2;
+
+        private GameObject MainCamera;
+
+        private Text Testtext;
+
+        private Material AlertText = new Material(Shader.Find("GUI/Text Shader"));
+
+        private int NotificationDecayTime = 144;
+
+        private int NotificationDecayTimeCounter;
+
+        public static int NoticationThreshold = 30;
+
+        private string[] Notifilines;
+
+        private string newtext;
+
+        public static string PreviousNotifi;
+
+        private bool HasInit;
+
+        private static Text NotifiText;
+
+        public static bool IsEnabled = true;
+
+        // Structured buffer properties for zero-allocation performance safety
+        private const int MaxStoredNotifications = 5;
+        private static readonly string[] NotificationQueue = new string[MaxStoredNotifications];
+        private static readonly float[] ExpiryTimes = new float[MaxStoredNotifications];
+        private static int ActiveCount = 0;
+        private static bool QueueDirty = false;
+        private static readonly StringBuilder StringBuilderCache = new StringBuilder(512);
     }
 }
